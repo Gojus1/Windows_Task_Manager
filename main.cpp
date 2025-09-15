@@ -1,6 +1,7 @@
 #include "menu.h"
 #include <windows.h>
 #include <commctrl.h>
+#pragma comment(lib, "comctl32.lib")
 #include <tlhelp32.h>
 
 
@@ -47,8 +48,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         InitListView(hwndList);
         RefreshProcessList(hwndList);
 
-        // Refresh every 2 seconds
-        SetTimer(hwnd, IDT_REFRESH, 2000, NULL);
+        //SetTimer(hwnd, IDT_REFRESH, 2000, NULL);
         break;
 
     case WM_TIMER:
@@ -71,13 +71,14 @@ void InitListView(HWND hwndList) {
     LVCOLUMNW lvCol = {0};
     lvCol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
 
-    lvCol.pszText = L"Process Name";
+    lvCol.pszText = (LPWSTR)L"Process Name";
     lvCol.cx = 300;
-    ListView_InsertColumnW(hwndList, 0, &lvCol);
+    ListView_InsertColumn(hwndList, 0, &lvCol);
 
-    lvCol.pszText = L"PID";
+    lvCol.pszText = (LPWSTR)L"PID";
     lvCol.cx = 100;
-    ListView_InsertColumnW(hwndList, 1, &lvCol);
+    ListView_InsertColumn(hwndList, 1, &lvCol);
+
 }
 
 // Refresh the process list
@@ -98,12 +99,12 @@ void RefreshProcessList(HWND hwndList) {
             lvItem.mask = LVIF_TEXT;
             lvItem.iItem = index;
             lvItem.pszText = pe.szExeFile;
-            ListView_InsertItemW(hwndList, &lvItem);
+            ListView_InsertItem(hwndList, &lvItem);
 
             // Insert PID
             wchar_t pidBuf[32];
             wsprintf(pidBuf, L"%u", pe.th32ProcessID);
-            ListView_SetItemTextW(hwndList, index, 1, pidBuf);
+            ListView_SetItemText(hwndList, index, 1, pidBuf);
 
             index++;
         } while (Process32Next(hSnapshot, &pe));
