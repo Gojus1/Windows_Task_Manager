@@ -5,7 +5,6 @@
 #include <tlhelp32.h>
 
 
-// Entry point
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
     MSG msg;
@@ -24,7 +23,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                               100, 100, 500, 400,
                               NULL, NULL, hInstance, NULL);
 
-    InitCommonControls(); // for ListView
+    InitCommonControls();
 
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
@@ -33,7 +32,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return (int) msg.wParam;
 }
 
-// Window procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     static HWND hwndList;
 
@@ -47,8 +45,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     
         InitListView(hwndList);
         RefreshProcessList(hwndList);
-
-        //SetTimer(hwnd, IDT_REFRESH, 2000, NULL);
         break;
 
     case WM_TIMER:
@@ -66,7 +62,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-// Initialize ListView with 2 columns
 void InitListView(HWND hwndList) {
     LVCOLUMNW lvCol = {0};
     lvCol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
@@ -81,7 +76,6 @@ void InitListView(HWND hwndList) {
 
 }
 
-// Refresh the process list
 void RefreshProcessList(HWND hwndList) {
     ListView_DeleteAllItems(hwndList);
 
@@ -94,14 +88,11 @@ void RefreshProcessList(HWND hwndList) {
     if (Process32First(hSnapshot, &pe)) {
         int index = 0;
         do {
-            // Insert process name
             LVITEMW lvItem = {0};
             lvItem.mask = LVIF_TEXT;
             lvItem.iItem = index;
             lvItem.pszText = pe.szExeFile;
             ListView_InsertItem(hwndList, &lvItem);
-
-            // Insert PID
             wchar_t pidBuf[32];
             wsprintf(pidBuf, L"%u", pe.th32ProcessID);
             ListView_SetItemText(hwndList, index, 1, pidBuf);
