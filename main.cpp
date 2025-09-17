@@ -18,7 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     RegisterClassW(&wc);
 
-    HWND hwnd = CreateWindowW(wc.lpszClassName, L"Mini Task Manager",
+    HWND hwnd = CreateWindowW(wc.lpszClassName, L"Task Manager",
                               WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                               100, 100, 500, 400,
                               NULL, NULL, hInstance, NULL);
