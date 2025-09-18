@@ -137,6 +137,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
+INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_INITDIALOG:
+            return TRUE;
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+                EndDialog(hwndDlg, LOWORD(wParam));
+                return TRUE;
+            }
+            break;
+    }
+    return FALSE;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
     MSG msg;    
@@ -164,12 +178,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     0
 );
 
-if (!hwndDialog) {
-    MessageBoxW(NULL, L"Dialog creation failed!", L"Error", MB_OK | MB_ICONERROR);
-} else {
-    ShowWindow(hwndDialog, SW_SHOW);
+    if (!hwndDialog) {
+        MessageBoxW(NULL, L"Dialog creation failed!", L"Error", MB_OK | MB_ICONERROR);
+    } else {
+        ShowWindow(hwndDialog, SW_SHOW); // 👈 this makes it visible
 }
-
 
     if (!hwndMain) {
         MessageBoxW(NULL, L"Window creation failed!", L"Error", MB_OK);
@@ -194,24 +207,9 @@ if (!hwndDialog) {
     }
 }
 
-
-
     return (int) msg.wParam;
 }
 
-INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
-        case WM_INITDIALOG:
-            return TRUE;
-        case WM_COMMAND:
-            if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
-                EndDialog(hwndDlg, LOWORD(wParam));
-                return TRUE;
-            }
-            break;
-    }
-    return FALSE;
-}
 
 void AddMenus(HWND hwnd) {
     HMENU hMenubar = CreateMenu();
