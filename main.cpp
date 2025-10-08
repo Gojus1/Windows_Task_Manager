@@ -77,6 +77,10 @@ void InitListView(HWND hwndList) {
     lvCol.cx = 100;
     ListView_InsertColumn(hwndList, 1, &lvCol);
 
+    lvCol.pszText = (LPWSTR)L"Memory Usage";
+    lvCol.cx = 100;
+    ListView_InsertColumn(hwndList, 2, &lvCol);
+
 }
 
 void AddMenus(HWND hwnd) {
