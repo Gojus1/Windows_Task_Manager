@@ -3,6 +3,7 @@
 #include <commctrl.h>
 #pragma comment(lib, "comctl32.lib")
 #include <tlhelp32.h>
+// #include <sfc.h>
 
 void AddMenus(HWND hwnd);
 
@@ -64,6 +65,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProcW(hwnd, msg, wParam, lParam);
     //AddMenus(hwnd);
 }
+
+// SfcIsFileProtected(
+//     NULL, 
+//     FILE_NAME
+// );
+
+// SfcIsKeyProtected(
+//     HKEY_LOCAL_MACHINE,
+//     KEY_NAME,
+//     KEY_READ
+// );
+
+
 
 void InitListView(HWND hwndList) {
     LVCOLUMNW lvCol = {0};
