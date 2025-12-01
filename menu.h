@@ -1,33 +1,21 @@
-#ifndef MENU_H
-#define MENU_H
+// menu.h
+#pragma once
 
-#ifndef UNICODE
-#define UNICODE
-#endif
-#ifndef _UNICODE
-#define _UNICODE
-#endif
+// IDs
+#define IDI_APPICON      101
+#define IDB_LOGO         102
+#define IDD_DETAILS      103
 
-#define IDOK 1
-#define IDCANCEL 2
+// menu IDs
+#define IDM_FILE_SAVE    40001
+#define IDM_FILE_LOAD    40002
+#define IDM_FILE_QUIT    40003
+#define IDM_ACTION_REFRESH 40010
+#define IDM_ACTION_KILL    40011
+#define IDM_VIEW_DETAILS   40012
 
+// controls
+#define IDC_LISTVIEW       60001
 
-#define IDM_FILE_NEW   1
-#define IDM_FILE_OPEN  2
-#define IDM_FILE_QUIT  3
-#define IDM_EDIT_REDO  4
-#define IDC_LISTVIEW   1001
-#define IDT_REFRESH    2001
-#define IDD_DIALOG1    101
-#define IDC_STATIC     -1
-
-#include <windows.h>
-#include <commctrl.h>
-#include <tlhelp32.h>
-
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
-void InitListView(HWND hwndParent);
-void RefreshProcessList(HWND hwndList);
-
-#endif
+// timers
+#define IDT_REFRESH        70001

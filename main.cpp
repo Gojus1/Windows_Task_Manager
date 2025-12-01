@@ -1,265 +1,190 @@
-#include "menu.h"
+#define _WIN32_IE 0x0500
 #include <windows.h>
 #include <commctrl.h>
-#pragma comment(lib, "comctl32.lib")
 #include <tlhelp32.h>
-// #include <sfc.h>
+#include <psapi.h>
+#include <string>
+//#pragma comment(lib, "comctl32.lib") // Can be removed; linked via -lcomctl32
 
+#define IDC_LISTVIEW 101
+#define IDT_REFRESH  1
+
+// Forward declarations
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+void InitListView(HWND hwndList);
+void RefreshProcessList(HWND hwndList);
 void AddMenus(HWND hwnd);
 
+// Optional: function to get memory usage if plugin not used
+DWORD GetProcessMemoryKBLocal(DWORD pid) {
+HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+if (!hProcess) return 0;
+
+PROCESS_MEMORY_COUNTERS pmc;
+DWORD mem = 0;
+if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))) {
+    mem = pmc.WorkingSetSize / 1024; // in KB
+}
+CloseHandle(hProcess);
+return mem;
+
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                   LPSTR lpCmdLine, int nCmdShow) {
-    MSG msg;
-    WNDCLASSW wc = {0};
+LPSTR lpCmdLine, int nCmdShow) {
+MSG msg;
+WNDCLASSW wc = {0};
 
-    wc.lpszClassName = L"TaskMgrClass";
-    wc.hInstance     = hInstance;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-    wc.lpfnWndProc   = WndProc;
-    wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+wc.lpszClassName = L"TaskMgrClass";
+wc.hInstance     = hInstance;
+wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+wc.lpfnWndProc   = WndProc;
+wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
 
-    RegisterClassW(&wc);
+RegisterClassW(&wc);
 
-    HWND hwnd = CreateWindowW(wc.lpszClassName, L"Task Manager",
-                              WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                              100, 100, 500, 400,
-                              NULL, NULL, hInstance, NULL);
+HWND hwnd = CreateWindowW(wc.lpszClassName, L"Task Manager",
+                          WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                          100, 100, 500, 400,
+                          NULL, NULL, hInstance, NULL);
 
-    InitCommonControls();
+if (!hwnd) {
+    MessageBoxW(NULL, L"Failed to create main window!", L"Error", MB_OK | MB_ICONERROR);
+    return 1;
+}
+InitCommonControls();
 
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    return (int) msg.wParam;
+while (GetMessage(&msg, NULL, 0, 0)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+}
+return (int) msg.wParam;
+
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    static HWND hwndList;
+static HWND hwndList;
 
+switch (msg) {
+case WM_CREATE:
+    hwndList = CreateWindowW(WC_LISTVIEWW, L"",
+                             WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SINGLESEL,
+                             10, 10, 460, 330,
+                             hwnd, (HMENU)IDC_LISTVIEW,
+                             ((LPCREATESTRUCT)lParam)->hInstance, NULL);
 
-    switch (msg) {
-    case WM_CREATE:
-        hwndList = CreateWindowW(WC_LISTVIEWW, L"",
-                                 WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_SINGLESEL,
-                                 10, 10, 460, 330,
-                                 hwnd, (HMENU)IDC_LISTVIEW,
-                                 ((LPCREATESTRUCT)lParam)->hInstance, NULL);
-    
-        InitListView(hwndList);
+    InitListView(hwndList);
+    RefreshProcessList(hwndList);
+
+    // Add menus
+    AddMenus(hwnd);
+
+    // Set timer to refresh every 2 seconds
+    SetTimer(hwnd, IDT_REFRESH, 2000, NULL);
+    break;
+
+case WM_TIMER:
+    if (wParam == IDT_REFRESH) {
         RefreshProcessList(hwndList);
-        break;
-
-    case WM_TIMER:
-        if (wParam == IDT_REFRESH) {
-            RefreshProcessList(hwndList);
-        }
-        break;
-
-    case WM_DESTROY:
-        KillTimer(hwnd, IDT_REFRESH);
-        PostQuitMessage(0);
-        break;
     }
+    break;
 
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
-    //AddMenus(hwnd);
+case WM_DESTROY:
+    KillTimer(hwnd, IDT_REFRESH);
+    PostQuitMessage(0);
+    break;
 }
 
-// SfcIsFileProtected(
-//     NULL, 
-//     FILE_NAME
-// );
-
-// SfcIsKeyProtected(
-//     HKEY_LOCAL_MACHINE,
-//     KEY_NAME,
-//     KEY_READ
-// );
+return DefWindowProcW(hwnd, msg, wParam, lParam);
 
 
+}
 
 void InitListView(HWND hwndList) {
-    LVCOLUMNW lvCol = {0};
-    lvCol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+// Set extended styles (full row select + grid lines)
+SendMessage(hwndList,
+LVM_SETEXTENDEDLISTVIEWSTYLE,
+0,
+LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 
-    lvCol.pszText = (LPWSTR)L"Process Name";
-    lvCol.cx = 300;
-    ListView_InsertColumn(hwndList, 0, &lvCol);
+// Insert columns
+LVCOLUMNW col = {0};
+col.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
 
-    lvCol.pszText = (LPWSTR)L"PID";
-    lvCol.cx = 100;
-    ListView_InsertColumn(hwndList, 1, &lvCol);
+col.cx = 300;
+col.pszText = (LPWSTR)L"Process Name";
+ListView_InsertColumn(hwndList, 0, &col);
 
-    lvCol.pszText = (LPWSTR)L"Memory Usage";
-    lvCol.cx = 100;
-    ListView_InsertColumn(hwndList, 2, &lvCol);
+col.cx = 100;
+col.pszText = (LPWSTR)L"PID";
+ListView_InsertColumn(hwndList, 1, &col);
+
+col.cx = 100;
+col.pszText = (LPWSTR)L"Memory (KB)";
+ListView_InsertColumn(hwndList, 2, &col);
 
 }
 
 void AddMenus(HWND hwnd) {
-    HMENU hMenubar = CreateMenu();
-    HMENU hMenu    = CreateMenu();
+HMENU hMenubar = CreateMenu();
+HMENU hMenu    = CreateMenu();
 
-    AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW,  L"&New");
-    AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
-    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
+AppendMenuW(hMenu, MF_STRING, 1, L"&Refresh");
+AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
+AppendMenuW(hMenu, MF_STRING, 2, L"&Quit");
 
-    AppendMenuW(hMenu, MF_STRING, IDM_EDIT_REDO, L"&Redo");
+AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR)hMenu, L"&File");
 
-    AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR)hMenu, L"&File");
-    AppendMenuW(hMenubar, MF_STRING, 0, L"&Edit");
-    SetMenu(hwnd, hMenubar);
+SetMenu(hwnd, hMenubar);
+
 }
 
 void RefreshProcessList(HWND hwndList) {
-    ListView_DeleteAllItems(hwndList);
+ListView_DeleteAllItems(hwndList);
 
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE) return;
+HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+if (hSnapshot == INVALID_HANDLE_VALUE) return;
 
-    PROCESSENTRY32 pe;  
-    pe.dwSize = sizeof(PROCESSENTRY32);
+PROCESSENTRY32W pe;
+pe.dwSize = sizeof(PROCESSENTRY32W);
 
-    if (Process32First(hSnapshot, &pe)) {
-        int index = 0;
-        do {
-            LVITEMW lvItem = {0};
-            lvItem.mask = LVIF_TEXT;
-            lvItem.iItem = index;
-            lvItem.pszText = pe.szExeFile;
-            ListView_InsertItem(hwndList, &lvItem);
-            wchar_t pidBuf[32];
-            wsprintf(pidBuf, L"%u", pe.th32ProcessID);
-            ListView_SetItemText(hwndList, index, 1, pidBuf);
+if (Process32FirstW(hSnapshot, &pe)) {
+    int index = 0;
+    do {
+        // First column: process name
+        LVITEMW lvItem0 = {0};
+        lvItem0.mask = LVIF_TEXT;
+        lvItem0.iItem = index;
+        lvItem0.iSubItem = 0;
+        lvItem0.pszText = (LPWSTR)pe.szExeFile;
+        SendMessageW(hwndList, LVM_INSERTITEMW, 0, (LPARAM)&lvItem0);
 
-            index++;
-        } while (Process32Next(hSnapshot, &pe));
-    }
+        // PID column
+        wchar_t pidBuf[32];
+        wsprintfW(pidBuf, L"%u", pe.th32ProcessID);
+        LVITEMW lvItem1 = {0};
+        lvItem1.mask = LVIF_TEXT;
+        lvItem1.iItem = index;
+        lvItem1.iSubItem = 1;
+        lvItem1.pszText = pidBuf;
+        SendMessageW(hwndList, LVM_SETITEMTEXTW, (WPARAM)index, (LPARAM)&lvItem1);
 
-    CloseHandle(hSnapshot);
+        // Memory column
+        DWORD memKB = GetProcessMemoryKBLocal(pe.th32ProcessID);
+        wchar_t memBuf[32];
+        wsprintfW(memBuf, L"%u", memKB);
+        LVITEMW lvItem2 = {0};
+        lvItem2.mask = LVIF_TEXT;
+        lvItem2.iItem = index;
+        lvItem2.iSubItem = 2;
+        lvItem2.pszText = memBuf;
+        SendMessageW(hwndList, LVM_SETITEMTEXTW, (WPARAM)index, (LPARAM)&lvItem2);
+
+        index++;
+    } while (Process32NextW(hSnapshot, &pe));
 }
 
 
-// #include "menu.h"
-// #include <windows.h>
+CloseHandle(hSnapshot);
 
-
-// void AddMenus(HWND);
-
-// LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-//     switch (msg) {
-//         case WM_CREATE:
-//             AddMenus(hwnd);
-//             break;
-
-//         case WM_COMMAND:
-//             switch (LOWORD(wParam)) {
-//                 case IDM_FILE_NEW:
-//                 case IDM_FILE_OPEN:
-//                     MessageBeep(MB_ICONINFORMATION);
-//                     break;
-//                 case IDM_FILE_QUIT:
-//                     SendMessage(hwnd, WM_CLOSE, 0, 0);
-//                     break;
-//             }
-//             break;
-
-//         case WM_DESTROY:
-//             PostQuitMessage(0);
-//             break;
-//     }
-
-//     return DefWindowProcW(hwnd, msg, wParam, lParam);
-// }
-
-// INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-//     switch (uMsg) {
-//         case WM_INITDIALOG:
-//             return TRUE;
-//         case WM_COMMAND:
-//             if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
-//                 EndDialog(hwndDlg, LOWORD(wParam));
-//                 return TRUE;
-//             }
-//             break;
-//     }
-//     return FALSE;
-// }
-
-// int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-//                    LPSTR lpCmdLine, int nCmdShow) {
-//     MSG msg;    
-//     WNDCLASSW wc = {0};
-
-//     wc.lpszClassName = L"SimpleMenuClass";
-//     wc.hInstance     = hInstance;
-//     wc.hbrBackground = (HBRUSH)(COLOR_3DFACE+1);
-//     wc.lpfnWndProc   = WndProc;
-//     wc.hCursor       = LoadCursor(0, IDC_ARROW);
-
-//     RegisterClassW(&wc);
-
-//     HWND hwndMain = CreateWindowW(wc.lpszClassName, L"Simple menu",
-//                        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-//                        100, 100, 350, 250,
-//                        0, 0, hInstance, 0);
-
-
-//     HWND hwndDialog = CreateDialogParamW(
-//     hInstance,
-//     MAKEINTRESOURCEW(IDD_DIALOG1),
-//     hwndMain,
-//     DialogProc,
-//     0
-// );
-
-//     if (!hwndDialog) {
-//         MessageBoxW(NULL, L"Dialog creation failed!", L"Error", MB_OK | MB_ICONERROR);
-//     } else {
-//         ShowWindow(hwndDialog, SW_SHOW); // 👈 this makes it visible
-// }
-
-//     if (!hwndMain) {
-//         MessageBoxW(NULL, L"Window creation failed!", L"Error", MB_OK);
-//         return 0;
-//     }
-
-//     CreateWindowW(
-//         L"BUTTON",  
-//         L"OK",      
-//         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  
-//         10, 10, 100, 100,  
-//         hwndMain,   
-//         NULL,       
-//         hInstance,  
-//         NULL);      
-
-//     // Message loop
-//     while (GetMessage(&msg, NULL, 0, 0)) {
-//     if (!IsDialogMessage(hwndDialog, &msg)) {
-//         TranslateMessage(&msg);
-//         DispatchMessage(&msg);
-//     }
-// }
-
-//     return (int) msg.wParam;
-// }
-
-
-// void AddMenus(HWND hwnd) {
-//     HMENU hMenubar = CreateMenu();
-//     HMENU hMenu    = CreateMenu();
-
-//     AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW,  L"&New");
-//     AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
-//     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
-
-//     AppendMenuW(hMenu, MF_STRING, IDM_EDIT_REDO, L"&Redo");
-
-//     AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR)hMenu, L"&File");
-//     AppendMenuW(hMenubar, MF_STRING, 0, L"&Edit");
-//     SetMenu(hwnd, hMenubar);
-// }
+}
