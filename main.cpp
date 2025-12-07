@@ -1,5 +1,3 @@
-// main.cpp - Task Manager style program (MinGW-compatible)
-// Features: Process list, Reload button, CPU% (real), sorting on header click.
 
 #define _WIN32_IE 0x0501
 #define _WIN32_WINNT 0x0501
@@ -34,32 +32,27 @@
       SendMessageW((hwnd), LVM_GETITEMTEXTW, (WPARAM)(i), (LPARAM)&_lvi); } while(0)
 #endif
 #ifndef LVM_INSERTITEMW
-#define LVM_INSERTITEMW (LVM_FIRST + 77) // sometimes works; we'll use SendMessageW LVM_INSERTITEMW
+#define LVM_INSERTITEMW (LVM_FIRST + 77)
 #endif
 #ifndef LVM_SETITEMTEXTW
 #define LVM_SETITEMTEXTW (LVM_FIRST + 46)
 #endif
 
-// Controls
 #define IDC_LISTVIEW 101
 #define IDC_RELOAD   102
 
-// Sorting state
 static int g_sortColumn = 0;
 static BOOL g_sortAscending = TRUE;
 
-// Forward declarations
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void InitListView(HWND hwndList);
 void RefreshProcessList(HWND hwndList);
 void AddMenus(HWND hwnd);
 
-// Convert FILETIME to unsigned 64
 static ULONGLONG FileTimeToULL(const FILETIME* ft) {
     return (((ULONGLONG)ft->dwHighDateTime) << 32) | ft->dwLowDateTime;
 }
 
-// Get process memory in KB
 DWORD GetProcessMemoryKBLocal(DWORD pid) {
     HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     if (!h) return 0;
@@ -72,14 +65,12 @@ DWORD GetProcessMemoryKBLocal(DWORD pid) {
     return mem;
 }
 
-// Structure to hold first-snapshot process info
 typedef struct {
     DWORD pid;
-    ULONGLONG procTime; // kernel + user (100-ns)
+    ULONGLONG procTime;
     wchar_t name[260];
 } PROC_SAMPLE;
 
-// Compare function for ListView_SortItemsEx
 int CALLBACK CompareProc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
 {
     HWND hwndList = (HWND)lParamSort;
