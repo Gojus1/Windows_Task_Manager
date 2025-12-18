@@ -10,7 +10,7 @@
 #include <shellapi.h>
 #include <map>
 
-#include "main.h"
+#define IDI_APPICON 101
 
 #pragma comment(lib, "comctl32")
 #pragma comment(lib, "psapi")
@@ -113,6 +113,33 @@ void InitCPU() {
     g_cores = si.dwNumberOfProcessors;
 }
 
+
+void LogHighProcesses(HWND lv) {
+    FILE* f = _wfopen(L"logs.txt", L"a"); // append
+    if (!f) return;
+
+    int count = ListView_GetItemCount(lv);
+    for (int i = 0; i < count; i++) {
+        wchar_t name[256], pid[32], mem[32], cpu[32];
+        ListView_GetItemText(lv, i, 0, name, 256);
+        ListView_GetItemText(lv, i, 1, pid, 32);
+        ListView_GetItemText(lv, i, 2, mem, 32);
+        ListView_GetItemText(lv, i, 3, cpu, 32);
+
+        int cpuVal = _wtoi(cpu);
+        int memVal = _wtoi(mem);
+
+        if (cpuVal > 10 || memVal > 512 * 1024) {
+            fwprintf(f, L"%s\tPID: %s\tMem: %s KB\tCPU: %s %%\n",
+                     name, pid, mem, cpu);
+        }
+    }
+
+    fwprintf(f, L"--- Log Entry End ---\n");
+    fclose(f);
+}
+
+
 /* ================= REFRESH ================= */
 void RefreshProcessList(HWND lv) {
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -194,6 +221,8 @@ void RefreshProcessList(HWND lv) {
 
     CloseHandle(snap);
     ListView_SortItemsEx(lv, CompareProc, (LPARAM)lv);
+
+    LogHighProcesses(lv);
 }
 
 /* ================= WINDOW ================= */
@@ -205,7 +234,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
     case WM_CREATE: {
         lv = CreateWindowW(WC_LISTVIEWW, L"",
             WS_CHILD | WS_VISIBLE | LVS_REPORT,
-            10, 10, 780, 540,
+            10, 10, 600, 540,
             hwnd, (HMENU)IDC_LISTVIEW, NULL, NULL);
 
         ListView_SetExtendedListViewStyle(lv,
@@ -313,7 +342,7 @@ int WINAPI WinMain(HINSTANCE h, HINSTANCE, LPSTR, int) {
 
     CreateWindowW(wc.lpszClassName, L"Task Manager (WinAPI)",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        100, 100, 820, 600,
+        100, 100, 630, 600,
         NULL, NULL, h, NULL);
 
     MSG msg;
