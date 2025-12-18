@@ -25,16 +25,14 @@ static BOOL g_sortAsc    = TRUE;
 HIMAGELIST g_hImageList = NULL;
 int g_defaultIconIndex = -1;
 
-/* ================= MEMORY LEVEL ================= */
 enum MEM_LEVEL { MEM_LOW = 0, MEM_MED = 1, MEM_HIGH = 2 };
 
 int GetMemLevel(DWORD memKB) {
-    if (memKB >= 1024 * 1024) return MEM_HIGH; // ≥ 1 GB
-    if (memKB >= 256 * 1024)  return MEM_MED;  // ≥ 256 MB
+    if (memKB >= 1024 * 1024) return MEM_HIGH;
+    if (memKB >= 256 * 1024)  return MEM_MED;
     return MEM_LOW;
 }
 
-/* ================= HELPERS ================= */
 DWORD GetMemKB(DWORD pid) {
     HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     if (!h) return 0;
@@ -56,7 +54,7 @@ bool GetProcessPath(DWORD pid, wchar_t* path) {
     return ok;
 }
 
-int FindItemByPID(HWND lv, DWORD pid) {
+int FindItemByPid(HWND lv, DWORD pid) {
     LVFINDINFO fi = {};
     fi.flags = LVFI_PARAM;
     fi.lParam = pid;
@@ -67,13 +65,10 @@ int GetProcessIconIndex(DWORD pid, const wchar_t* fallback) {
     wchar_t path[MAX_PATH];
     const wchar_t* use = fallback;
 
-    if (GetProcessPath(pid, path))
-        use = path;
+    if (GetProcessPath(pid, path)) use = path;
 
     SHFILEINFO sfi = {};
-    if (SHGetFileInfoW(use, 0, &sfi, sizeof(sfi),
-        SHGFI_ICON | SHGFI_SMALLICON)) {
-
+    if (SHGetFileInfoW(use, 0, &sfi, sizeof(sfi), SHGFI_ICON | SHGFI_SMALLICON)) {
         int idx = ImageList_AddIcon(g_hImageList, sfi.hIcon);
         DestroyIcon(sfi.hIcon);
         return idx;
@@ -81,24 +76,25 @@ int GetProcessIconIndex(DWORD pid, const wchar_t* fallback) {
     return g_defaultIconIndex;
 }
 
-/* ================= SORTING ================= */
+// For sorting, kinda ruff rn
 int CALLBACK CompareProc(LPARAM p1, LPARAM p2, LPARAM param) {
     HWND lv = (HWND)param;
     wchar_t a[64], b[64];
 
-    ListView_GetItemText(lv, FindItemByPID(lv,(DWORD)p1), g_sortColumn, a, 64);
-    ListView_GetItemText(lv, FindItemByPID(lv,(DWORD)p2), g_sortColumn, b, 64);
+    ListView_GetItemText(lv, FindItemByPid(lv,(DWORD)p1), g_sortColumn, a, 64);
+    ListView_GetItemText(lv, FindItemByPid(lv,(DWORD)p2), g_sortColumn, b, 64);
 
     int r;
-    if (g_sortColumn == 0)
+    if (g_sortColumn == 0){
         r = lstrcmpiW(a, b);
-    else
+    }
+    else{
         r = _wtoi(a) - _wtoi(b);
+    }
 
     return g_sortAsc ? r : -r;
 }
 
-/* ================= CPU TRACKING ================= */
 struct CPUINFO {
     ULONGLONG cpu;
     FILETIME  time;
@@ -113,9 +109,11 @@ void InitCPU() {
     g_cores = si.dwNumberOfProcessors;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
+// LOGGING
+/////////////////////////////////////////////////////////////////////////////
 void LogHighProcesses(HWND lv) {
-    FILE* f = _wfopen(L"logs.txt", L"a"); // append
+    FILE* f = _wfopen(L"logs.txt", L"a");
     if (!f) return;
 
     int count = ListView_GetItemCount(lv);
@@ -130,8 +128,7 @@ void LogHighProcesses(HWND lv) {
         int memVal = _wtoi(mem);
 
         if (cpuVal > 10 || memVal > 512 * 1024) {
-            fwprintf(f, L"%s\tPID: %s\tMem: %s KB\tCPU: %s %%\n",
-                     name, pid, mem, cpu);
+            fwprintf(f, L"%s\tPID: %s\tMem: %s KB\tCPU: %s %%\n", name, pid, mem, cpu);
         }
     }
 
@@ -139,8 +136,10 @@ void LogHighProcesses(HWND lv) {
     fclose(f);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+// REFRESH PROCESSES
+/////////////////////////////////////////////////////////////////////////////////////
 
-/* ================= REFRESH ================= */
 void RefreshProcessList(HWND lv) {
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE) return;
@@ -152,7 +151,7 @@ void RefreshProcessList(HWND lv) {
     if (Process32FirstW(snap, &pe)) {
         do {
             DWORD pid = pe.th32ProcessID;
-            int idx = FindItemByPID(lv, pid);
+            int idx = FindItemByPid(lv, pid);
 
             if (idx == -1) {
                 LVITEMW it = {};
@@ -225,7 +224,8 @@ void RefreshProcessList(HWND lv) {
     LogHighProcesses(lv);
 }
 
-/* ================= WINDOW ================= */
+/////////////////////////////////////////////////////////////////////////////////
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
     static HWND lv;
 
@@ -324,7 +324,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
     return DefWindowProcW(hwnd, msg, w, l);
 }
 
-/* ================= ENTRY ================= */
+////////////////////////////////////////////////////////////////////////////////////
+// MAIN
+//////////////////////////////////////////////////////////////////////////////////
+
 int WINAPI WinMain(HINSTANCE h, HINSTANCE, LPSTR, int) {
 
     INITCOMMONCONTROLSEX ic = { sizeof(ic), ICC_LISTVIEW_CLASSES };
