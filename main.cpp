@@ -10,6 +10,8 @@
 #include <shellapi.h>
 #include <map>
 
+#include "main.h"
+
 #pragma comment(lib, "comctl32")
 #pragma comment(lib, "psapi")
 #pragma comment(lib, "shell32")
@@ -295,16 +297,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
 
 /* ================= ENTRY ================= */
 int WINAPI WinMain(HINSTANCE h, HINSTANCE, LPSTR, int) {
+
     INITCOMMONCONTROLSEX ic = { sizeof(ic), ICC_LISTVIEW_CLASSES };
     InitCommonControlsEx(&ic);
 
-    WNDCLASSW wc = {};
+    WNDCLASSEXW wc = { sizeof(wc) };
     wc.lpfnWndProc = WndProc;
     wc.hInstance = h;
     wc.lpszClassName = L"TaskMgrLite";
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-    RegisterClassW(&wc);
+    wc.hIcon = LoadIconW(h, MAKEINTRESOURCE(IDI_APPICON));
+    wc.hIconSm = LoadIconW(h, MAKEINTRESOURCE(IDI_APPICON));
+    RegisterClassExW(&wc);
 
     CreateWindowW(wc.lpszClassName, L"Task Manager (WinAPI)",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
