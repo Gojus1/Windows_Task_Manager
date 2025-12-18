@@ -1,3 +1,17 @@
+
+
+// Simple Task Manager using WinAPI
+// Shows process name, PID, memory usage and CPU usage
+
+// Compile and run: 
+// windres resource.rc -O coff -o resources.o
+// g++ main.cpp resources.o -mwindows -lcomctl32 -lpsapi -lshell32 -o taskMngr.exe
+// ./taskMngr.exe
+
+// More information can be found here:
+// https://github.com/Gojus1/Windows_Task_Manager
+
+
 #define UNICODE
 #define _UNICODE
 #define _WIN32_IE 0x0501
