@@ -2,6 +2,7 @@
 // Shows process name, PID, memory usage and CPU usage
 
 // Compile and run: 
+// g++ -shared -o dll.dll dll.cpp "-Wl,--out-implib,libProjectDLL.a"
 // windres resource.rc -O coff -o resources.o
 // g++ main.cpp resources.o -mwindows -lcomctl32 -lpsapi -lshell32 -o taskMngr.exe
 // ./taskMngr.exe
