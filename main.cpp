@@ -41,7 +41,7 @@ int g_defaultIconIndex = -1;
 
 enum MEM_LEVEL { MEM_LOW = 0, MEM_MED = 1, MEM_HIGH = 2 };
 
-int GetMemLevel(DWORD memKB) {
+int GetMemLvl(DWORD memKB) {
     if (memKB >= 1024 * 1024) return MEM_HIGH;
     if (memKB >= 256 * 1024)  return MEM_MED;
     return MEM_LOW;
@@ -75,7 +75,7 @@ int FindItemByPid(HWND lv, DWORD pid) {
     return ListView_FindItem(lv, -1, &fi);
 }
 
-int GetProcessIconIndex(DWORD pid, const wchar_t* fallback) {
+int GetProcIcon(DWORD pid, const wchar_t* fallback) {
     wchar_t path[MAX_PATH];
     const wchar_t* use = fallback;
 
@@ -91,7 +91,7 @@ int GetProcessIconIndex(DWORD pid, const wchar_t* fallback) {
 }
 
 // For sorting, kinda ruff rn
-int CALLBACK CompareProc(LPARAM p1, LPARAM p2, LPARAM param) {
+int CALLBACK SortProc(LPARAM p1, LPARAM p2, LPARAM param) {
     HWND lv = (HWND)param;
     wchar_t a[64], b[64];
 
@@ -124,9 +124,9 @@ void InitCPU() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// LOGGING
+// LOGGER (logs high processes)
 /////////////////////////////////////////////////////////////////////////////
-void LogHighProcesses(HWND lv) {
+void LogProc(HWND lv) {
     FILE* f = _wfopen(L"logs.txt", L"a");
     if (!f) return;
 
@@ -154,7 +154,7 @@ void LogHighProcesses(HWND lv) {
 // REFRESH PROCESSES
 /////////////////////////////////////////////////////////////////////////////////////
 
-void RefreshProcessList(HWND lv) {
+void RefreshList(HWND lv) {
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE) return;
 
@@ -172,7 +172,7 @@ void RefreshProcessList(HWND lv) {
                 it.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
                 it.iItem = ListView_GetItemCount(lv);
                 it.lParam = pid;
-                it.iImage = GetProcessIconIndex(pid, pe.szExeFile);
+                it.iImage = GetProcIcon(pid, pe.szExeFile);
                 it.pszText = pe.szExeFile;
                 idx = ListView_InsertItem(lv, &it);
             }
@@ -213,7 +213,7 @@ void RefreshProcessList(HWND lv) {
             wsprintfW(buf, L"%d", cpuPct);
             ListView_SetItemText(lv, idx, 3, buf);
 
-            int memLevel = GetMemLevel(mem);
+            int memLevel = GetMemLvl(mem);
 
             LVITEMW it = {};
             it.mask = LVIF_PARAM;
@@ -233,9 +233,9 @@ void RefreshProcessList(HWND lv) {
     }
 
     CloseHandle(snap);
-    ListView_SortItemsEx(lv, CompareProc, (LPARAM)lv);
+    ListView_SortItemsEx(lv, SortProc, (LPARAM)lv);
 
-    LogHighProcesses(lv);
+    LogProc(lv);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -281,12 +281,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
 
         InitCPU();
         SetTimer(hwnd, IDT_REFRESH, 1500, NULL);
-        RefreshProcessList(lv);
+        RefreshList(lv);
         return 0;
     }
 
     case WM_TIMER:
-        RefreshProcessList(lv);
+        RefreshList(lv);
         return 0;
 
     case WM_NOTIFY: {
@@ -307,15 +307,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
                 int cpu = (it.lParam >> 24) & 0xFF;
                 int mem = (it.lParam >> 16) & 0xFF;
 
-                if (cpu >= 20)
-                    cd->clrTextBk = RGB(255,180,180);
-                else if (cpu >= 1)
-                    cd->clrTextBk = RGB(255,240,170);
-                else if (mem == MEM_HIGH)
-                    cd->clrTextBk = RGB(200,200,255);
-                else if (mem == MEM_MED)
+                if (cpu >= 20){
+                    cd->clrTextBk = RGB(255,180,180);}
+                else if (cpu >= 1){
+                    cd->clrTextBk = RGB(255,240,170);}
+                else if (mem == MEM_HIGH){
+                    cd->clrTextBk = RGB(200,200,255);}
+                else if (mem == MEM_MED){
                     cd->clrTextBk = RGB(240,240,255);
-
+                }
                 return CDRF_DODEFAULT;
             }
         }
@@ -324,7 +324,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
             NMLISTVIEW* n = (NMLISTVIEW*)l;
             g_sortAsc = (g_sortColumn == n->iSubItem) ? !g_sortAsc : TRUE;
             g_sortColumn = n->iSubItem;
-            ListView_SortItemsEx(lv, CompareProc, (LPARAM)lv);
+            ListView_SortItemsEx(lv, SortProc, (LPARAM)lv);
         }
         return 0;
     }
