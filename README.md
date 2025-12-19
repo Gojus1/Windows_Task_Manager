@@ -15,7 +15,7 @@ This project was created for learning purposes and demonstrates core Windows pro
 - Row coloring based on:
   - CPU usage
   - Memory usage
--Logs high CPU or memory processes to a file (logs.txt)
+- Logs high CPU or memory processes to a file (logs.txt)
 
 # Build Instructions
 
