@@ -309,7 +309,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
 
                 if (cpu >= 20){
                     cd->clrTextBk = RGB(255,180,180);}
-                else if (cpu >= 1){
+                else if (cpu >= 2){
                     cd->clrTextBk = RGB(255,240,170);}
                 else if (mem == MEM_HIGH){
                     cd->clrTextBk = RGB(200,200,255);}
@@ -357,7 +357,7 @@ int WINAPI WinMain(HINSTANCE h, HINSTANCE, LPSTR, int) {
     wc.hIconSm = LoadIconW(h, MAKEINTRESOURCE(IDI_APPICON));
     RegisterClassExW(&wc);
 
-    CreateWindowW(wc.lpszClassName, L"Task Manager (WinAPI)",
+    CreateWindowW(wc.lpszClassName, L"Task Manager",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         100, 100, 630, 600,
         NULL, NULL, h, NULL);
