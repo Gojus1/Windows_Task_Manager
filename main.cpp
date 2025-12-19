@@ -44,12 +44,9 @@ HIMAGELIST g_hImageList = NULL;
 int g_defaultIconIndex = -1;
 
 enum MEM_LEVEL { MEM_LOW = 0, MEM_MED = 1, MEM_HIGH = 2 };
-
-// ------------------ DLL Integration ------------------
 HMODULE g_hDLL = NULL;
 typedef int (*GetMemLvlFunc)(DWORD);
 GetMemLvlFunc g_pGetMemLvl = nullptr;
-// -----------------------------------------------------
 
 int GetMemLvl(DWORD memKB) {
     if (memKB >= 50 * 1024) return MEM_HIGH;
@@ -222,11 +219,10 @@ void RefreshList(HWND lv) {
             wsprintfW(buf, L"%d", cpuPct);
             ListView_SetItemText(lv, idx, 3, buf);
 
-            // -------- Use DLL once globally --------
             int memLevel = MEM_LOW;
             if (g_pGetMemLvl) {
                 memLevel = g_pGetMemLvl(mem);
-                if (memLevel < MEM_LOW || memLevel > MEM_HIGH) memLevel = MEM_LOW; // safety
+                if (memLevel < MEM_LOW || memLevel > MEM_HIGH) memLevel = MEM_LOW;
             }
 
             if (cpuPct > 255) cpuPct = 255;
@@ -294,7 +290,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
 
         InitCPU();
 
-        // -------- Load DLL once here --------
+        // DLL LOADING
         g_hDLL = LoadLibraryW(L"dll.dll");
         if (g_hDLL) {
             g_pGetMemLvl = (GetMemLvlFunc)GetProcAddress(g_hDLL, "GetMemLvl");
