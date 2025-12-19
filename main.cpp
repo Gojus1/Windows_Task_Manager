@@ -349,7 +349,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
     case WM_DESTROY:
         KillTimer(hwnd, IDT_REFRESH);
 
-        // -------- Free DLL on exit --------
         if (g_hDLL) FreeLibrary(g_hDLL);
 
         PostQuitMessage(0);
