@@ -146,7 +146,6 @@ void LogProc(HWND lv) {
         }
     }
 
-    fwprintf(f, L"--- Log Entry End ---\n");
     fclose(f);
 }
 
