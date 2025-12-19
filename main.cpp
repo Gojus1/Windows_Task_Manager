@@ -1,5 +1,3 @@
-
-
 // Simple Task Manager using WinAPI
 // Shows process name, PID, memory usage and CPU usage
 
@@ -47,9 +45,15 @@ int g_defaultIconIndex = -1;
 
 enum MEM_LEVEL { MEM_LOW = 0, MEM_MED = 1, MEM_HIGH = 2 };
 
+// ------------------ DLL Integration ------------------
+HMODULE g_hDLL = NULL;
+typedef int (*GetMemLvlFunc)(DWORD);
+GetMemLvlFunc g_pGetMemLvl = nullptr;
+// -----------------------------------------------------
+
 int GetMemLvl(DWORD memKB) {
-    if (memKB >= 1024 * 1024) return MEM_HIGH;
-    if (memKB >= 256 * 1024)  return MEM_MED;
+    if (memKB >= 50 * 1024) return MEM_HIGH;
+    if (memKB >= 1 * 1024)  return MEM_MED;
     return MEM_LOW;
 }
 
@@ -218,21 +222,24 @@ void RefreshList(HWND lv) {
             wsprintfW(buf, L"%d", cpuPct);
             ListView_SetItemText(lv, idx, 3, buf);
 
-            int memLevel = GetMemLvl(mem);
-
-            LVITEMW it = {};
-            it.mask = LVIF_PARAM;
-            it.iItem = idx;
-            ListView_GetItem(lv, &it);
+            // -------- Use DLL once globally --------
+            int memLevel = MEM_LOW;
+            if (g_pGetMemLvl) {
+                memLevel = g_pGetMemLvl(mem);
+                if (memLevel < MEM_LOW || memLevel > MEM_HIGH) memLevel = MEM_LOW; // safety
+            }
 
             if (cpuPct > 255) cpuPct = 255;
 
-            it.lParam =
+            LVITEMW lvItem = {};
+            lvItem.mask = LVIF_PARAM;
+            lvItem.iItem = idx;
+            lvItem.lParam =
                 (pid & 0xFFFF) |
                 ((memLevel & 0xFF) << 16) |
                 ((cpuPct & 0xFF) << 24);
+            ListView_SetItem(lv, &lvItem);
 
-            ListView_SetItem(lv, &it);
 
         } while (Process32NextW(snap, &pe));
     }
@@ -242,6 +249,7 @@ void RefreshList(HWND lv) {
 
     LogProc(lv);
 }
+
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -285,6 +293,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
         ListView_InsertColumn(lv, 3, &c);
 
         InitCPU();
+
+        // -------- Load DLL once here --------
+        g_hDLL = LoadLibraryW(L"dll.dll");
+        if (g_hDLL) {
+            g_pGetMemLvl = (GetMemLvlFunc)GetProcAddress(g_hDLL, "GetMemLvl");
+        }
+
         SetTimer(hwnd, IDT_REFRESH, 1500, NULL);
         RefreshList(lv);
         return 0;
@@ -336,6 +351,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
 
     case WM_DESTROY:
         KillTimer(hwnd, IDT_REFRESH);
+
+        // -------- Free DLL on exit --------
+        if (g_hDLL) FreeLibrary(g_hDLL);
+
         PostQuitMessage(0);
         return 0;
 
@@ -346,7 +365,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
             return 0;
         }
     }
-    return DefWindowProcW(hwnd, msg, w, l);
+    return DefWindowProc(hwnd, msg, w, l);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
