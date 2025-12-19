@@ -1,9 +1,9 @@
 ## Task Manager
 
-![Preview](taskMngr.png)
-
 A lightweight Windows Task Manager–like application written in C++ using the WinAPI.
 This project was created for learning purposes and demonstrates core Windows programming concepts.
+
+![Preview](taskMngr.png)
 
 # Features
 
