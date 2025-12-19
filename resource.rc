@@ -1,3 +1,15 @@
-#include "main.h"
+#define IDI_APPICON 101
+#define IDR_MAINMENU 102
+#define IDM_SAVELOG  40001
+#define IDM_EXIT     40002
+#define IDM_ABOUT    40003
 
 IDI_APPICON ICON "favicon(3).ico"
+
+IDR_MAINMENU MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "E&xit", IDM_EXIT
+    END
+END

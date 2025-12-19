@@ -26,6 +26,12 @@
 
 #define IDI_APPICON 101
 
+#define IDR_MAINMENU  102
+
+#define IDM_SAVELOG   40001
+#define IDM_EXIT      40002
+#define IDM_ABOUT     40003
+
 #pragma comment(lib, "comctl32")
 #pragma comment(lib, "psapi")
 #pragma comment(lib, "shell32")
@@ -332,8 +338,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
         KillTimer(hwnd, IDT_REFRESH);
         PostQuitMessage(0);
         return 0;
-    }
 
+    case WM_COMMAND:
+        switch (LOWORD(w)) {
+        case IDM_EXIT:
+            DestroyWindow(hwnd);
+            return 0;
+        }
+    }
     return DefWindowProcW(hwnd, msg, w, l);
 }
 
@@ -356,10 +368,18 @@ int WINAPI WinMain(HINSTANCE h, HINSTANCE, LPSTR, int) {
     wc.hIconSm = LoadIconW(h, MAKEINTRESOURCE(IDI_APPICON));
     RegisterClassExW(&wc);
 
-    CreateWindowW(wc.lpszClassName, L"Task Manager",
+    HMENU hMenu = LoadMenuW(h, MAKEINTRESOURCE(IDR_MAINMENU));
+
+    CreateWindowW(
+        wc.lpszClassName,
+        L"Task Manager",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         100, 100, 630, 600,
-        NULL, NULL, h, NULL);
+        NULL,
+        hMenu,
+        h,
+        NULL
+        );
 
     MSG msg;
     while (GetMessage(&msg,NULL,0,0)) {
