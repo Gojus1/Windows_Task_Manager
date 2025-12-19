@@ -13,8 +13,8 @@ This project was created for learning purposes and demonstrates core Windows pro
 - Clickable column headers for sorting
 - Process icons (with fallback default icon)
 - Row coloring based on:
--- High CPU usage
--- Medium / high memory usage
+  - CPU usage
+  - Memory usage
 -Logs high CPU or memory processes to a file (logs.txt)
 
 # Build Instructions
