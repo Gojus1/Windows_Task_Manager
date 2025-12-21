@@ -1,14 +1,8 @@
-// Simple Task Manager using WinAPI
-// Shows process name, PID, memory usage and CPU usage
-
 // Compile and run: 
-// g++ -shared -o dll.dll dll.cpp "-Wl,--out-implib,libProjectDLL.a"
+// g++ -shared -o GetMemLvl.dll GetMemLvl.cpp "-Wl,--out-implib,libProjectDLL.a"
 // windres resource.rc -O coff -o resources.o
 // g++ main.cpp resources.o -mwindows -lcomctl32 -lpsapi -lshell32 -o taskMngr.exe
 // ./taskMngr.exe
-
-// More information can be found here:
-// https://github.com/Gojus1/Windows_Task_Manager
 
 
 #define UNICODE
@@ -292,7 +286,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l) {
         InitCPU();
 
         // DLL LOADING
-        g_hDLL = LoadLibraryW(L"dll.dll");
+        g_hDLL = LoadLibraryW(L"GetMemLvl.dll");
         if (g_hDLL) {
             g_pGetMemLvl = (GetMemLvlFunc)GetProcAddress(g_hDLL, "GetMemLvl");
         }
